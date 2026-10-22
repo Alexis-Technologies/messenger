@@ -34,8 +34,20 @@
           "title": "SMS"
         },
         {
+          "id": "rcs",
+          "title": "RCS"
+        },
+        {
           "id": "whatsapp",
           "title": "WhatsApp"
+        },
+        {
+          "id": "messenger",
+          "title": "Facebook Messenger"
+        },
+        {
+          "id": "instagram",
+          "title": "Instagram Direct"
         },
         {
           "id": "telegram",
@@ -44,6 +56,26 @@
         {
           "id": "viber",
           "title": "Viber"
+        },
+        {
+          "id": "slack",
+          "title": "Slack"
+        },
+        {
+          "id": "discord",
+          "title": "Discord"
+        },
+        {
+          "id": "teams",
+          "title": "Microsoft Teams"
+        },
+        {
+          "id": "googleChat",
+          "title": "Google Chat"
+        },
+        {
+          "id": "push",
+          "title": "Push (FCM, APNs, Web Push)"
         },
         {
           "id": "otherChannels",
@@ -257,9 +289,21 @@
           "mark": "🔜",
           "text": "Twilio, Vonage, Infobip, Sinch, SNS"
         },
+        "rcs": {
+          "mark": "🔜",
+          "text": "Google RBM, the SMS providers' RCS"
+        },
         "whatsapp": {
           "mark": "🔜",
           "text": "Meta Cloud API"
+        },
+        "messenger": {
+          "mark": "🔜",
+          "text": "Send API of a page"
+        },
+        "instagram": {
+          "mark": "🔜",
+          "text": "Instagram messaging API"
         },
         "telegram": {
           "mark": "🔜",
@@ -269,10 +313,31 @@
           "mark": "🔜",
           "text": "Bot API, Ukrainian providers"
         },
+        "slack": {
+          "mark": "🔜",
+          "text": "Web API and incoming webhooks"
+        },
+        "discord": {
+          "mark": "🔜",
+          "text": "bot REST API and webhooks"
+        },
+        "teams": {
+          "mark": "🔜",
+          "text": "Workflows webhooks, Bot Framework"
+        },
+        "googleChat": {
+          "mark": "🔜",
+          "text": "space webhooks, Chat API"
+        },
+        "push": {
+          "mark": "🔜",
+          "text": "FCM HTTP v1, APNs, Web Push",
+          "note": "APNs requires HTTP/2, which Node’s `fetch` does not speak: it goes over `node:http2`. The tokens of FCM and APNs and the encryption of Web Push are `node:crypto`."
+        },
         "otherChannels": {
           "mark": "❌",
           "text": "later, when a user needs one",
-          "note": "Email is the sibling library [@alexify/mailer](https://mailerat.vercel.app/)."
+          "note": "LINE, WeChat, KakaoTalk, Zalo, Mattermost, Rocket.Chat or Matrix after the first release. Email is the sibling library [@alexify/mailer](https://mailerat.vercel.app/); Signal and iMessage have no official API for this."
         },
         "uaProviders": {
           "mark": "🔜",
@@ -443,10 +508,21 @@
           "mark": "✅",
           "text": "Twilio, Vonage, Plivo, MessageBird, Telnyx, SNS"
         },
+        "rcs": {
+          "mark": "❌",
+          "text": "no RCS code",
+          "note": "Plain text sent through a Twilio Messaging Service that has an RCS sender may be upgraded to RCS on Twilio's side; nothing in the library knows about it."
+        },
         "whatsapp": {
           "mark": "⚠️",
           "text": "Twilio `whatsapp:` prefix only",
           "note": "No Cloud API provider and no template support; the Twilio receiver detects WhatsApp and `reply()` re-adds the `whatsapp:` prefix."
+        },
+        "messenger": {
+          "mark": "❌"
+        },
+        "instagram": {
+          "mark": "❌"
         },
         "telegram": {
           "mark": "✅",
@@ -456,10 +532,33 @@
         "viber": {
           "mark": "❌"
         },
+        "slack": {
+          "mark": "✅",
+          "text": "Web API `chat.postMessage` or incoming webhook",
+          "note": "Blocks and threads are sent; the Slack receiver verifies signatures and parses events, slash commands and interactions."
+        },
+        "discord": {
+          "mark": "✅",
+          "text": "incoming webhook only, plus interactions receiver",
+          "note": "No bot API, so no DMs; `blocks` become `embeds`. When a handler takes over 2 s the receiver defers the interaction, but `reply()` posts through the channel webhook, not as the interaction follow-up."
+        },
+        "teams": {
+          "mark": "✅",
+          "text": "incoming webhook + outgoing-webhook receiver",
+          "note": "Without `blocks` it posts a legacy `MessageCard`, the Office 365 connector format Microsoft is retiring; a Workflows webhook needs an Adaptive Card envelope you pass as `blocks`."
+        },
+        "googleChat": {
+          "mark": "❌"
+        },
+        "push": {
+          "mark": "✅",
+          "text": "FCM HTTP v1, APNs, Web Push, Expo",
+          "note": "FCM needs an OAuth access token you obtain yourself; APNs uses `node:http2` and `node:crypto` (Node-only) and targets the sandbox unless `production: true`. Web Push is VAPID + RFC 8291 on Web Crypto."
+        },
         "otherChannels": {
           "mark": "✅",
-          "text": "push, Slack, Discord, Teams, email, in-app, webhook",
-          "note": "Push: FCM, APNs, Expo, Web Push. Email delegates to a `@visulima/email` instance."
+          "text": "email, in-app inbox, outbound webhook",
+          "note": "Email delegates to a `@visulima/email` instance; the in-app inbox has memory and unstorage stores."
         },
         "uaProviders": {
           "mark": "❌"
@@ -649,9 +748,20 @@
           "mark": "✅",
           "text": "10, incl. Twilio, Vonage, Infobip, Sinch"
         },
+        "rcs": {
+          "mark": "⚠️",
+          "text": "Twilio `contentSid` via a Messaging Service",
+          "note": "No RCS connector: Twilio Content API templates (`contentSid`, `contentVariables`) can go out as RCS when the Messaging Service has an RCS sender; the Infobip and Sinch connectors use SMS endpoints only."
+        },
         "whatsapp": {
           "mark": "✅",
           "text": "Meta Cloud API"
+        },
+        "messenger": {
+          "mark": "❌"
+        },
+        "instagram": {
+          "mark": "❌"
         },
         "telegram": {
           "mark": "✅",
@@ -660,10 +770,33 @@
         "viber": {
           "mark": "❌"
         },
+        "slack": {
+          "mark": "✅",
+          "text": "incoming webhook only; blocks, threads",
+          "note": "No Web API (`chat.postMessage`), so `providerMessageId` is always `null`."
+        },
+        "discord": {
+          "mark": "✅",
+          "text": "incoming webhook only; embeds, components"
+        },
+        "teams": {
+          "mark": "✅",
+          "text": "Workflows or legacy webhook, Adaptive Card",
+          "note": "Wraps the text in an Adaptive Card envelope and treats a legacy connector's HTTP 200 error body as a failure."
+        },
+        "googleChat": {
+          "mark": "✅",
+          "text": "space webhook; cards v2, threads"
+        },
+        "push": {
+          "mark": "✅",
+          "text": "FCM v1, APNs, Expo, OneSignal, Beams, WonderPush",
+          "note": "No VAPID Web Push of its own. APNs refuses to send without an HTTP/2-capable `fetch` you inject (Node's is HTTP/1.1) and needs a `tokenCache` in production."
+        },
         "otherChannels": {
           "mark": "✅",
-          "text": "email, push, Slack, Discord, Teams, LINE, more",
-          "note": "Also Google Chat, Mattermost, Rocket.Chat; push via FCM, APNs, Expo, OneSignal, Pusher Beams, WonderPush."
+          "text": "email, LINE, Mattermost, Rocket.Chat",
+          "note": "10 email providers: SES, Resend, Mailgun, SendGrid, Postmark, MailerSend, Mailtrap, Brevo, SparkPost, Scaleway."
         },
         "uaProviders": {
           "mark": "❌"
@@ -826,10 +959,22 @@
           "mark": "✅",
           "text": "38 SMS provider ids, on Novu server"
         },
+        "rcs": {
+          "mark": "❌",
+          "text": "no provider id"
+        },
         "whatsapp": {
           "mark": "✅",
           "text": "Cloud API (`whatsapp-business`)",
           "note": "The `whatsapp-business` provider posts to `graph.facebook.com` (Meta's official API). Novu agents can also reply on WhatsApp."
+        },
+        "messenger": {
+          "mark": "❌",
+          "text": "no provider id"
+        },
+        "instagram": {
+          "mark": "❌",
+          "text": "no provider id"
         },
         "telegram": {
           "mark": "✅",
@@ -840,8 +985,34 @@
           "mark": "❌",
           "text": "no provider id"
         },
+        "slack": {
+          "mark": "✅",
+          "text": "`slack`, `novu-slack`: OAuth app, webhooks, Novu server",
+          "note": "In `@novu/providers` 2.6.6, `slack` posts to the subscriber's incoming `webhookUrl`. `@novu/shared` 2.10.0 adds `slack_channel`/`slack_user` endpoints and a signing secret, and Slack is also an agent platform for inbound messages."
+        },
+        "discord": {
+          "mark": "✅",
+          "text": "`discord`: incoming webhook, on the Novu server",
+          "note": "Discord as an agent platform (inbound) is marked `comingSoon` in `@novu/shared`."
+        },
+        "teams": {
+          "mark": "✅",
+          "text": "`msteams`: Azure Bot, on the Novu server",
+          "note": "In `@novu/providers` 2.6.6, `msteams` posts to an incoming `webhookUrl`. `@novu/shared` 2.10.0 asks for a Microsoft App ID, client secret and tenant ID (Azure Bot / Bot Framework) and adds `ms_teams_channel`/`ms_teams_user` endpoints."
+        },
+        "googleChat": {
+          "mark": "🔜",
+          "text": "`google-chat` is marked `comingSoon`",
+          "note": "The framework's provider override schemas already have a `google-chat` key, but the integration catalog in `@novu/shared` 2.10.0 has no Google Chat provider. It appears only in the list of coming-soon agent platforms."
+        },
+        "push": {
+          "mark": "✅",
+          "text": "`fcm`, `apns`, `expo`, `one-signal`, `pushpad`…, Novu server",
+          "note": "The ids `pusher-beams`, `appio` and `push-webhook` also exist. Web Push works only through FCM's `webPush` override, Pushpad or OneSignal; no provider sends VAPID Web Push directly."
+        },
         "otherChannels": {
-          "text": "email, push, in-app, Slack, Teams, Discord, iMessage"
+          "text": "email, in-app, LINE, iMessage, Webex, Mattermost, Zulip…",
+          "note": "Also Rocket.Chat, Ryver, GetStream, Grafana OnCall, a generic chat webhook, and tool steps (PagerDuty, Opsgenie, webhook). There is no voice channel."
         },
         "uaProviders": {
           "mark": "❌"
@@ -1021,9 +1192,19 @@
           "mark": "✅",
           "text": "9 providers"
         },
+        "rcs": {
+          "mark": "❌"
+        },
         "whatsapp": {
           "mark": "✅",
           "text": "Infobip (BSP) only"
+        },
+        "messenger": {
+          "mark": "❌",
+          "text": "listed as a TODO in the source"
+        },
+        "instagram": {
+          "mark": "❌"
         },
         "telegram": {
           "mark": "❌",
@@ -1032,8 +1213,26 @@
         "viber": {
           "mark": "❌"
         },
+        "slack": {
+          "mark": "✅",
+          "text": "incoming webhook only"
+        },
+        "discord": {
+          "mark": "❌"
+        },
+        "teams": {
+          "mark": "❌"
+        },
+        "googleChat": {
+          "mark": "❌"
+        },
+        "push": {
+          "mark": "⚠️",
+          "text": "APNs, Web Push (VAPID), WNS, ADM; FCM broken",
+          "note": "From reading the code, not running it: the `fcm` provider passes its config as `gcm` settings (`lib/providers/push/fcm.js`). node-pushnotifications 3.1.1 sends Android tokens through its FCM v1 path, which reads `fcm` settings that are never set, and its `gcm` path uses Google's legacy API, shut down in 2024."
+        },
         "otherChannels": {
-          "text": "email, push, web push, Slack webhook, voice"
+          "text": "email, voice (Twilio)"
         },
         "uaProviders": {
           "mark": "❌"
@@ -1197,7 +1396,16 @@
         "sms": {
           "mark": "—"
         },
+        "rcs": {
+          "mark": "—"
+        },
         "whatsapp": {
+          "mark": "—"
+        },
+        "messenger": {
+          "mark": "—"
+        },
+        "instagram": {
           "mark": "—"
         },
         "telegram": {
@@ -1205,6 +1413,21 @@
           "text": "Bot API 10.3"
         },
         "viber": {
+          "mark": "—"
+        },
+        "slack": {
+          "mark": "—"
+        },
+        "discord": {
+          "mark": "—"
+        },
+        "teams": {
+          "mark": "—"
+        },
+        "googleChat": {
+          "mark": "—"
+        },
+        "push": {
           "mark": "—"
         },
         "otherChannels": {
@@ -1370,7 +1593,16 @@
         "sms": {
           "mark": "—"
         },
+        "rcs": {
+          "mark": "—"
+        },
         "whatsapp": {
+          "mark": "—"
+        },
+        "messenger": {
+          "mark": "—"
+        },
+        "instagram": {
           "mark": "—"
         },
         "telegram": {
@@ -1378,6 +1610,21 @@
           "text": "Bot API 10.3"
         },
         "viber": {
+          "mark": "—"
+        },
+        "slack": {
+          "mark": "—"
+        },
+        "discord": {
+          "mark": "—"
+        },
+        "teams": {
+          "mark": "—"
+        },
+        "googleChat": {
+          "mark": "—"
+        },
+        "push": {
           "mark": "—"
         },
         "otherChannels": {
@@ -1547,9 +1794,22 @@
           "mark": "✅",
           "text": "Messages API"
         },
+        "rcs": {
+          "mark": "✅",
+          "text": "Messages API, RCS senders (`rcs:`)"
+        },
         "whatsapp": {
           "mark": "✅",
           "text": "official, Twilio as BSP"
+        },
+        "messenger": {
+          "mark": "✅",
+          "text": "Conversations `messenger` address type",
+          "note": "Notify's Facebook Messenger option (`facebookMessengerPageId`) is marked Deprecated in `lib/rest/notify/v1/service.d.ts`; Conversations is the remaining path."
+        },
+        "instagram": {
+          "mark": "❌",
+          "text": "none"
         },
         "telegram": {
           "mark": "❌",
@@ -1559,10 +1819,31 @@
           "mark": "❌",
           "text": "none"
         },
+        "slack": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "discord": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "teams": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "googleChat": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "push": {
+          "mark": "✅",
+          "text": "Notify: APNs, FCM (GCM legacy)",
+          "note": "No Web Push. The package does not mark Notify itself deprecated, only its Messenger and Alexa options; Conversations has separate APN/FCM credentials for its own client SDKs."
+        },
         "otherChannels": {
           "mark": "✅",
-          "text": "RCS, MMS, voice, Messenger, chat, email, push",
-          "note": "Messenger, email and chat through Conversations address types; APN/FCM push through Notify."
+          "text": "MMS, voice, video, email, in-app chat, Apple Messages",
+          "note": "Conversations still lists `gbm` (Google Business Messages), a channel Google shut down in 2024."
         },
         "uaProviders": {
           "mark": "❌",
@@ -1743,9 +2024,21 @@
           "mark": "✅",
           "text": "Messages API (long/short code, alphanumeric)"
         },
+        "rcs": {
+          "mark": "✅",
+          "text": "`messages.rcs.send()`, RCS agents"
+        },
         "whatsapp": {
           "mark": "✅",
           "text": "official, `messages.whatsapp()`"
+        },
+        "messenger": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "instagram": {
+          "mark": "❌",
+          "text": "none"
         },
         "telegram": {
           "mark": "❌",
@@ -1755,9 +2048,31 @@
           "mark": "❌",
           "text": "none"
         },
+        "slack": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "discord": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "teams": {
+          "mark": "❌",
+          "text": "none (Teams Phone voice only)",
+          "note": "The Teams resources (Operator Connect, direct routing, meeting bots) are telephony, not Teams messaging."
+        },
+        "googleChat": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "push": {
+          "mark": "❌",
+          "text": "none (call push credentials only)",
+          "note": "`mobilePushCredentials` (iOS/Android) only attach to SIP connections so Telnyx can wake its own calling SDK; there is no API to send push notifications."
+        },
         "otherChannels": {
           "mark": "✅",
-          "text": "RCS, MMS, voice, fax, email"
+          "text": "MMS, voice, video rooms, fax, email"
         },
         "uaProviders": {
           "mark": "❌",
@@ -1937,9 +2252,22 @@
           "mark": "✅",
           "text": "Messages API and SMS API"
         },
+        "rcs": {
+          "mark": "✅",
+          "text": "Messages API `rcs` channel",
+          "note": "The bundled `@vonage/messages` README lists RCS as Beta."
+        },
         "whatsapp": {
           "mark": "✅",
           "text": "official, Messages API"
+        },
+        "messenger": {
+          "mark": "✅",
+          "text": "Messages API `messenger` channel"
+        },
+        "instagram": {
+          "mark": "❌",
+          "text": "none"
         },
         "telegram": {
           "mark": "❌",
@@ -1949,9 +2277,29 @@
           "mark": "✅",
           "text": "`viber_service` (Viber Business)"
         },
+        "slack": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "discord": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "teams": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "googleChat": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "push": {
+          "mark": "❌",
+          "text": "none"
+        },
         "otherChannels": {
           "mark": "✅",
-          "text": "RCS, MMS, Messenger, email, voice, video"
+          "text": "MMS, email, voice, video"
         },
         "uaProviders": {
           "mark": "❌",
@@ -2129,9 +2477,21 @@
           "mark": "✅",
           "text": "Message API"
         },
+        "rcs": {
+          "mark": "❌",
+          "text": "none"
+        },
         "whatsapp": {
           "mark": "✅",
           "text": "official, `type: 'whatsapp'`"
+        },
+        "messenger": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "instagram": {
+          "mark": "❌",
+          "text": "none"
         },
         "telegram": {
           "mark": "❌",
@@ -2141,9 +2501,29 @@
           "mark": "❌",
           "text": "none"
         },
+        "slack": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "discord": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "teams": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "googleChat": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "push": {
+          "mark": "❌",
+          "text": "none"
+        },
         "otherChannels": {
           "mark": "✅",
-          "text": "MMS, voice, PHLO, Verify, number masking"
+          "text": "MMS, voice, number masking"
         },
         "uaProviders": {
           "mark": "❌",
@@ -2322,9 +2702,21 @@
           "mark": "✅",
           "text": "SMS API (batches)"
         },
+        "rcs": {
+          "mark": "✅",
+          "text": "Conversation API `RCS`"
+        },
         "whatsapp": {
           "mark": "✅",
           "text": "Conversation API (official BSP)"
+        },
+        "messenger": {
+          "mark": "✅",
+          "text": "Conversation API `MESSENGER`"
+        },
+        "instagram": {
+          "mark": "✅",
+          "text": "Conversation API `INSTAGRAM`"
         },
         "telegram": {
           "mark": "✅",
@@ -2334,10 +2726,30 @@
           "mark": "✅",
           "text": "`VIBER`, `VIBERBM` channels"
         },
+        "slack": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "discord": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "teams": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "googleChat": {
+          "mark": "❌",
+          "text": "none"
+        },
+        "push": {
+          "mark": "❌",
+          "text": "none"
+        },
         "otherChannels": {
           "mark": "✅",
-          "text": "RCS, Messenger, Instagram, LINE, WeChat, KakaoTalk, voice",
-          "note": "Also MMS, Apple Messages for Business, fax and verification."
+          "text": "MMS, LINE, WeChat, KakaoTalk, Apple, voice, fax",
+          "note": "Apple Messages for Business is the Conversation channel `APPLEBC`; verification is in `@sinch/verification`."
         },
         "uaProviders": {
           "mark": "❌",

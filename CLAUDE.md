@@ -8,8 +8,9 @@ Guidance for Claude Code when working in this repository.
 in the place of notifme-sdk, @visulima/notification or the SDKs of the providers, for the channels
 that are not email. It is made of two parts:
 
-1. **The channels:** SMS, WhatsApp, Telegram and Viber, each through the HTTP API of its providers
-   on `fetch`, without their SDKs.
+1. **The channels,** twelve in v1, each through the HTTP API of its providers, without their SDKs:
+   SMS and RCS; WhatsApp, Messenger and Instagram (Meta's platform); Telegram and Viber; Slack,
+   Discord, Microsoft Teams and Google Chat; and push (FCM, APNs, Web Push).
 2. **A reliability layer on top of them,** which none of the eleven libraries in
    `docs/comparison.json` has whole: a persistent queue and outbox, an append-only audit of the
    states of a message, one model of delivery receipts from verified webhooks, opt-out,
@@ -89,10 +90,14 @@ runtime suites on Bun and Deno. Treat that as the pre-merge gate. There is no bu
 
 There is no `dependencies` or `peerDependencies` key in `package.json`, and there won't be one.
 
-- **The providers are called over `fetch`:** the SMS APIs, the WhatsApp Cloud API, the Telegram
-  Bot API and Viber are plain HTTPS with JSON or form bodies; signatures of requests and webhooks
-  (HMAC-SHA1/SHA256, Ed25519) are `node:crypto`. No provider SDK (they bring axios, `request`
-  and a dozen packages each; see the comparison).
+- **The providers are called over `fetch`:** the SMS and RCS APIs, Meta's Graph API, the bot
+  APIs of Telegram and Viber, Slack's Web API, Discord's REST API, the webhooks of Teams and
+  Google Chat and the Chat API, FCM and Web Push are plain HTTPS with JSON or form bodies.
+  **APNs is the exception:** it requires HTTP/2, which Node's `fetch` does not speak, so it goes
+  over `node:http2`. Signatures of requests and webhooks (HMAC-SHA1/SHA256, Ed25519), the JWTs of
+  FCM (RS256, a service account) and APNs (ES256), and the encryption and VAPID of Web Push
+  (RFC 8291, RFC 8292) are `node:crypto`. No provider SDK (they bring axios, `request`,
+  `firebase-admin` and a dozen packages each; see the comparison).
 - **No phone-number library.** E.164 validation and the segments of an SMS are small enough to
   write and test here, rather than bundling libphonenumber-js.
 - **Infrastructure drivers are injected.** An adapter for a queue or a store takes the client or
@@ -136,11 +141,16 @@ them LF) follow mailer's layout, and `tests/e2e/` holds opt-in suites against re
 To be written with Phase 0. The contracts it starts from, shaped like mailer's so that the two
 libraries read alike:
 
-- **`Message`**: `channel` (`sms` | `whatsapp` | `telegram` | `viber`), `to` (E.164 for SMS and
-  WhatsApp, a `chat_id` for Telegram, a user id for Viber), `from` (a number, an alphanumeric
-  sender id, a WhatsApp phone number id, a bot), `text`, `media`, `buttons`, `template` (required
-  by WhatsApp outside the 24-hour window), `tags`, `tenantId`, `idempotencyKey`, `scheduledAt`.
-  Built by a function that validates it, as `createMessage` does in mailer.
+- **`Message`**: `channel` (`sms` | `rcs` | `whatsapp` | `messenger` | `instagram` | `telegram` |
+  `viber` | `slack` | `discord` | `teams` | `googleChat` | `push`), `to` (E.164 for SMS, RCS and
+  WhatsApp; a page- or Instagram-scoped id for Messenger and Instagram; a `chat_id` for Telegram;
+  a user id for Viber; a channel, a user or a webhook for the work chats; a device token or a Web
+  Push subscription for push), `from` (a number, an alphanumeric sender id, a phone number id, a
+  page, a bot, an app), `text`, `media`, `buttons`, `template` (required by WhatsApp outside the
+  24-hour window), `mentions` (none unless allowed), `tags`, `tenantId`, `idempotencyKey`,
+  `scheduledAt`. Built by a function that validates it, as `createMessage` does in mailer. A
+  channel's own payload (Block Kit, an Adaptive Card, an embed) passes through a typed escape
+  hatch rather than a lowest common denominator.
 - **`Transport<TProviderId>`**: `send(message, { signal }) → Receipt` and
   `sendMany(messages) → AsyncIterable<Receipt>`. A transport reports a failure in a receipt
   rather than by throwing.
@@ -148,12 +158,14 @@ libraries read alike:
   `{ successful: false, errorMessages, errors, retryable }`. A `ReceiptError` carries a `category`:
   mailer's (auth, rate-limit, network, timeout, validation, rejected, unsupported, server-error,
   service-unavailable, configuration, unknown) plus the messaging ones — `invalid-recipient`,
-  `opted-out`, `outside-window` (WhatsApp, 24 hours), `blocked` (the user blocked the bot),
-  `not-on-channel` (the number is not on Viber or WhatsApp: a reason to fall back).
+  `opted-out`, `outside-window` (WhatsApp, Messenger and Instagram, 24 hours), `blocked` (the user
+  blocked the bot), `not-on-channel` (the number is not on Viber, WhatsApp or RCS: a reason to
+  fall back), `unregistered` (a push token or a subscription that no longer exists: drop it).
 - **The states and events of a message:** `queued → submitted → accepted → sent → delivered |
   read | failed | expired | delivery_unknown`, with correlationId, tenantId, channel, provider,
-  attempt and the provider's message id; no phone number in clear. An inbound STOP is an opt-out
-  event.
+  attempt and the provider's message id; no recipient in clear. A channel that reports no
+  delivery (the work chats, push) stops at `sent`, and its receipt says so. An inbound STOP is an
+  opt-out event.
 - **`QueueDriver` and `AuditSink`** as in mailer (`../mailer/index.d.ts`): a driver-neutral queue
   with ack/retry/fail/release outcomes, and an append-only sink of events.
 
@@ -170,15 +182,28 @@ context from the start.
 
 **Phase 1, reliable sending (P0).**
 
-- **The channels of v1:** SMS (Twilio, Vonage, Infobip, Sinch, Amazon SNS; TurboSMS, AlphaSMS,
-  SMSClub for Ukraine), WhatsApp (the Meta Cloud API; a BSP such as Twilio or 360dialog after),
-  Telegram (the Bot API), Viber (the Bot API, and Viber with SMS fallback through the Ukrainian
-  providers, which run it on their side).
+- **The channels of v1:**
+  - SMS (Twilio, Vonage, Infobip, Sinch, Amazon SNS; TurboSMS, AlphaSMS, SMSClub for Ukraine) and
+    RCS (Google's RBM API, and the RCS of the SMS providers that have it, with their SMS
+    fallback);
+  - Meta's platform: WhatsApp (the Cloud API; a BSP such as Twilio or 360dialog after),
+    Messenger (the Send API of a page) and Instagram (its messaging API), one Graph API client,
+    one `X-Hub-Signature-256` verifier and one model of the 24-hour window for the three;
+  - Telegram (the Bot API) and Viber (the Bot API, and Viber with SMS fallback through the
+    Ukrainian providers, which run it on their side);
+  - the work chats: Slack (the Web API with a bot token, and incoming webhooks), Discord (the
+    REST API of a bot, and webhooks), Microsoft Teams (Workflows webhooks, which replace the
+    Office 365 connectors, and a Bot Framework bot for chats) and Google Chat (space webhooks,
+    and the Chat API as an app);
+  - push: FCM (the HTTP v1 API), APNs (HTTP/2, token-based) and Web Push (VAPID).
 - **The rules of a channel:** E.164 normalization with a default country; the encoding (GSM-7 or
   UCS-2) and the segments of an SMS (160/153, 70/67), counted before it is sent; the WhatsApp
-  template, required outside the window.
-- **Errors classified:** permanent (invalid number, blocked bot, opted out, outside the window)
-  are not retried; temporary ones are, with jitter and `Retry-After`, under an attempt limit.
+  template, required outside the window; text escaped for the markup of its channel (Slack's
+  mrkdwn, Telegram's HTML, Discord's Markdown) and mentions of everyone off unless allowed; the
+  size limits of each channel checked before a send rather than learned from a 400.
+- **Errors classified:** permanent (invalid number, blocked bot, opted out, outside the window,
+  an unregistered push token) are not retried; temporary ones are, with jitter and `Retry-After`,
+  under an attempt limit.
 - **A mock transport** and fake provider servers for the tests; retry and timeout decorators.
 
 **Phase 2, a closed loop (P1).** Webhooks of the providers into the one model of receipts, with
@@ -187,20 +212,28 @@ checked before a message is queued, with a policy for transactional messages (on
 fallback between providers and between channels (WhatsApp or Viber, then SMS) on refusal, on
 `not-on-channel` or on no receipt within a deadline, and never after a send of unknown outcome
 without an idempotency key; rate limits per channel and provider (Telegram: about 30 messages a
-second, 1 a second per chat, 20 a minute per group; the tiers of WhatsApp); the persistent queue
+second, 1 a second per chat, 20 a minute per group; Slack: about 1 message a second per channel;
+Discord's buckets from its `X-RateLimit-*` headers; the tiers of WhatsApp); the persistent queue
 and outbox, and idempotency mapped to a provider's own deduplication where it has one (TurboSMS
 `sequence_id`, 30 days); OpenTelemetry spans and metrics.
 
 **Phase 3, multi-tenant (P2).** Templates by name; scheduled sending as a queue delay; quiet hours
-in the recipient's time zone; credentials per tenant; more channels (Slack, Discord, push, RCS),
-each only when a user needs it.
+in the recipient's time zone; credentials per tenant; more channels (LINE, WeChat, KakaoTalk,
+Zalo; Mattermost, Rocket.Chat, Matrix, Webex), each only when a user needs it.
 
 **Decisions:**
 
-- **HTTP APIs, not SDKs.** Every provider of the four channels is HTTPS with JSON or form bodies;
-  an SDK would bring its HTTP client and its dependencies into a zero-dependency package.
+- **HTTP APIs, not SDKs.** Every provider of the twelve channels is HTTPS with JSON or form
+  bodies (APNs over HTTP/2); an SDK would bring its HTTP client and its dependencies into a
+  zero-dependency package.
 - **Official APIs only.** WhatsApp through the Cloud API or a BSP, never through clients that
   drive WhatsApp Web (Baileys, whatsapp-web.js), which break its terms and get numbers banned.
+  Signal (bots only through the unofficial signal-cli) and iMessage (only through Apple's
+  certified providers) are out for the same reason.
+- **One message, the channel's own payload when needed.** The common fields (text, media,
+  buttons) cover a one-time code or an alert on every channel; a rich message of one platform
+  (Block Kit, an Adaptive Card, a Discord embed, a WhatsApp template) is passed as that
+  platform's payload, typed, rather than squeezed into a model that fits none.
 - **Few providers per channel, done well.** Each provider adds a webhook format and an API that
   drifts; another one waits for a user who needs it.
 - **Email stays in mailer.** A fallback to email is the application's, with the receipts of both
@@ -234,13 +267,15 @@ Node compatibility; their versions are pinned in `ci.yml`, and `engines` names n
 user imports `npm:@alexify/messenger`. Mailer found that Deno's `fetch` sends a request again when
 a reused HTTP/1.1 connection closes before its answer (`../mailer/CLAUDE.md`, "Platform"); a
 provider without an idempotency key would send an SMS twice the same way, so the providers will
-be tested for it on Deno as mailer's are.
+be tested for it on Deno as mailer's are. APNs needs an HTTP/2 client (`node:http2`), which Bun
+and Deno implement through their Node compatibility; `tests/runtime` will send to a local HTTP/2
+server on all three.
 
 There is no `browser.js` and no `browser` field: sending from a browser would expose the
 credentials. `src/` may use `node:*` modules freely. Edge runtimes are not a target for now; every
-provider is HTTP, so if they become one, the core and the providers would move behind an entry
-with no `node:*` (WebCrypto for the signatures), and a platform test would enforce it as in
-protoarray.
+provider but APNs is HTTP/1.1 over `fetch`, so if they become one, the core and those providers
+would move behind an entry with no `node:*` (WebCrypto for the signatures and Web Push), APNs
+would stay Node-only, and a platform test would enforce it as in protoarray.
 
 ## Conventions (oxlint/oxfmt + review)
 

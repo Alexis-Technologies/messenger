@@ -7,8 +7,9 @@
 [![docs](https://img.shields.io/badge/docs-online-blue)](https://messengerat.vercel.app/)
 [![license](https://img.shields.io/npm/l/%40alexify%2Fmessenger)](./LICENSE)
 
-**SMS, WhatsApp, Telegram and Viber for Node.js, with a reliability layer.** One message model
-over the HTTP APIs of the providers, and on top of it what the other libraries leave to the
+**Chat apps, SMS and push for Node.js, with a reliability layer.** One message model over the HTTP
+APIs of SMS and RCS, WhatsApp, Messenger and Instagram, Telegram and Viber, Slack, Discord,
+Microsoft Teams and Google Chat, and push, and on top of it what the other libraries leave to the
 application: a persistent queue and outbox, an audit of every state of a message, one model of
 delivery receipts, idempotency and fallback between channels. Zero runtime dependencies.
 
@@ -19,17 +20,21 @@ delivery receipts, idempotency and fallback between channels. Zero runtime depen
 
 ## Why @alexify/messenger
 
-- **Four channels, one message.** SMS (Twilio, Vonage, Infobip, Sinch, Amazon SNS, and the
-  Ukrainian TurboSMS, AlphaSMS and SMSClub), the WhatsApp Cloud API, the Telegram Bot API and
-  Viber, each called over `fetch` without its SDK.
+- **Twelve channels, one message.** SMS (Twilio, Vonage, Infobip, Sinch, Amazon SNS, and the
+  Ukrainian TurboSMS, AlphaSMS and SMSClub) and RCS; WhatsApp, Messenger and Instagram on Meta's
+  platform; the Telegram Bot API and Viber; Slack, Discord, Microsoft Teams and Google Chat; and
+  push through FCM, APNs and Web Push. Each is called over `fetch` (APNs over `node:http2`),
+  without its SDK.
 - **What happens after `send()`.** A persistent queue and outbox, an append-only audit of the
   states of a message, and one model of delivery receipts (sent, delivered, read, failed,
-  expired) from webhooks that are verified before they are read.
+  expired) from webhooks that are verified before they are read, for the channels that report
+  them.
 - **Fallback that knows what happened.** WhatsApp, then SMS if no receipt says it was delivered in
   time; never a second one-time code after a send of unknown outcome. Idempotency keys, errors
   classified as permanent or temporary, one opt-out list across channels.
 - **The rules of each channel in the library.** E.164 numbers, the GSM-7 or UCS-2 segments of an
-  SMS, the 24-hour window and templates of WhatsApp, the rate limits of Telegram.
+  SMS, the 24-hour window and templates of WhatsApp, Messenger and Instagram, the rate limits of
+  Telegram, Slack and Discord, and mentions such as `@everyone` that never ping by accident.
 - **Zero dependencies.** Built on `node:*` modules and `fetch`, for Node.js 22+, Bun and Deno. The
   driver of a queue or a database is created by your application and passed in. CommonJS with ESM
   named imports and hand-written TypeScript typings, no build step.

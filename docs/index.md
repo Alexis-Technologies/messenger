@@ -2,12 +2,12 @@
 layout: home
 
 title: '@alexify/messenger'
-titleTemplate: SMS, WhatsApp, Telegram and Viber for Node.js, with a reliability layer
+titleTemplate: Chat apps, SMS and push for Node.js, with a reliability layer
 
 hero:
   name: messenger
-  text: SMS, WhatsApp, Telegram and Viber, with a reliability layer
-  tagline: One message model over the HTTP APIs of the providers, and on top of it what the other libraries leave to you — a persistent queue, an audit of every state, one model of delivery receipts, idempotency and fallback between channels. Zero dependencies.
+  text: Chat apps, SMS and push, with a reliability layer
+  tagline: "One message model for SMS and RCS, WhatsApp, Messenger and Instagram, Telegram and Viber, Slack, Discord, Teams and Google Chat, and push, and on top of it what the other libraries leave to you: a persistent queue, an audit of every state, one model of delivery receipts, idempotency and fallback between channels. Zero dependencies."
   image:
     src: /logo-mark.svg
     alt: messenger
@@ -24,8 +24,8 @@ hero:
 
 features:
   - icon: 💬
-    title: Four channels, one message
-    details: "SMS, WhatsApp, Telegram and Viber through the HTTP APIs of their providers on fetch, without their SDKs — including the Ukrainian SMS and Viber providers no other library has."
+    title: Twelve channels, one message
+    details: "SMS and RCS, WhatsApp, Messenger and Instagram, Telegram and Viber, Slack, Discord, Teams and Google Chat, and push, through the HTTP APIs of their providers without their SDKs — including the Ukrainian SMS and Viber providers no other library has."
     link: /guide/why
     linkText: The channels
   - icon: 🧾

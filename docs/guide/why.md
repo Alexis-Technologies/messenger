@@ -10,10 +10,14 @@
 @alexify/messenger is the sibling of [@alexify/mailer](https://mailerat.vercel.app/) for the
 channels that are not email, made of two parts:
 
-1. **The channels.** SMS, WhatsApp, Telegram and Viber, each through the HTTP API of its
-   providers on `fetch`, without their SDKs: the SMS of the international providers (Twilio,
-   Vonage, Infobip, Sinch, Amazon SNS) and of the Ukrainian ones (TurboSMS, AlphaSMS, SMSClub),
-   the WhatsApp Cloud API of Meta, the Telegram Bot API and Viber.
+1. **The channels.** Twelve of them, each through the HTTP API of its providers, without their
+   SDKs:
+   - **SMS and RCS:** the international providers (Twilio, Vonage, Infobip, Sinch, Amazon SNS)
+     and the Ukrainian ones (TurboSMS, AlphaSMS, SMSClub);
+   - **Meta's platform:** WhatsApp (the Cloud API), Messenger and Instagram;
+   - **Telegram and Viber,** through their bot APIs;
+   - **work chats:** Slack, Discord, Microsoft Teams and Google Chat;
+   - **push:** FCM, APNs and Web Push.
 2. **A reliability layer on top of them.** A persistent queue and outbox, an append-only audit of
    the states of a message, one model of delivery receipts from verified webhooks, opt-out,
    idempotency and fallback between providers and between channels.
@@ -37,9 +41,11 @@ application is what happens after `send()`:
   message, so a job that dies between "submitted" and "accepted" is lost or sent again.
 - **The rules of each channel are the application's:** E.164 numbers, the segments of an SMS in
   GSM-7 or UCS-2, the 24-hour window and the templates of WhatsApp, the rate limits of Telegram,
-  STOP replies.
-- **Viber and the Ukrainian providers are out of reach.** Viber comes only with the SDKs of
-  Vonage and Sinch, and no library has TurboSMS, AlphaSMS, SMSClub or SMS-Fly.
+  Slack and Discord, STOP replies.
+- **Some channels come only with one provider's SDK.** Messenger, Instagram and Viber are in no
+  unified library, only in the SDKs of Twilio, Vonage or Sinch; the work chats are reached
+  through their incoming webhooks at best; and no library has TurboSMS, AlphaSMS, SMSClub or
+  SMS-Fly.
 
 Breadth of providers is not where the gap is. Each provider is one more webhook format and one
 more API that drifts, so the library starts with few providers per channel and puts its effort
@@ -54,36 +60,42 @@ into what happens to a message after `send()`.
   blind retry.
 - **Every state is recorded.** `queued → submitted → accepted → sent → delivered | read | failed |
   expired | delivery_unknown`, with the channel, the provider, the attempt and the provider's
-  message id. A phone number is personal data: it is stored so that it can be erased later (a
-  keyed hash plus an encrypted block whose key can be destroyed).
+  message id. A channel that reports no delivery (a Slack post, a push) stops at `sent`, and says
+  so. A phone number, a chat id or a device token is personal data: it is stored so that it can
+  be erased later (a keyed hash plus an encrypted block whose key can be destroyed).
 - **Fallback on the outcome, not only on an error.** A message moves to the next channel when the
   provider refused it, when the recipient is not on that channel, or when no receipt says it was
   delivered within a deadline, and never after a send of unknown outcome without an idempotency
   key.
 - **Errors are classified.** Permanent failures (an invalid number, a bot the user blocked, an
-  opted-out recipient, a WhatsApp message outside its window) are not retried; temporary ones
-  are, with jitter and `Retry-After`.
+  opted-out recipient, a message outside the window of WhatsApp or Messenger, a push token that
+  is no longer registered) are not retried; temporary ones are, with jitter and `Retry-After`.
 - **The rules of a channel are in the library:** numbers checked against E.164, the encoding and
-  the segments of an SMS counted before it is sent, the WhatsApp window and template, the rate
-  limits of Telegram, and one opt-out list across channels.
+  the segments of an SMS counted before it is sent, the window and the templates of Meta's
+  channels, the rate limits of Telegram, Slack and Discord, mentions (`@everyone`, `<!channel>`)
+  that ping only when asked to, and one opt-out list across channels.
 - **Secure by default.** A webhook is verified before it is parsed, with the signature of its
-  provider and a window of time against replays; credentials are never logged, and phone numbers
-  are redacted in logs.
-- **No dependencies.** The providers are called with `fetch` and signed with `node:crypto`. The
-  driver of a queue or a database is created by your application and passed in.
+  provider and a window of time against replays; credentials and webhook URLs, which are
+  credentials too, are never logged, and recipients are redacted in logs.
+- **No dependencies.** The providers are called with `fetch` (APNs, which requires HTTP/2, with
+  `node:http2`) and signed with `node:crypto`, the tokens of FCM and APNs and the encryption of
+  Web Push included. The driver of a queue or a database is created by your application and
+  passed in.
 
 ## The plan
 
 1. **Contracts:** the message, the channel, the transport, the receipt, the model of states and
    delivery events, the queue driver and the audit sink.
-2. **Reliable sending:** the providers of the four channels, E.164 and the segments of an SMS, the
-   classification of errors, retries and a mock transport.
+2. **Reliable sending:** the providers of the twelve channels, E.164 and the segments of an SMS,
+   the classification of errors, retries and a mock transport.
 3. **A closed loop:** webhooks into the model of receipts, opt-out, fallback between providers and
    channels, rate limits per channel, the queue and outbox, idempotency, OpenTelemetry.
 4. **Multi-tenant:** templates, scheduled sending, quiet hours, credentials per tenant, and more
-   channels (Slack, Discord, push, RCS) when a user needs them.
+   channels (LINE, WeChat, KakaoTalk, Zalo; Mattermost, Rocket.Chat, Matrix) when a user needs
+   them.
 
-Out of scope: email, which is [@alexify/mailer](https://mailerat.vercel.app/); unofficial
-WhatsApp clients, which drive WhatsApp Web against its terms; and the management APIs of the
-providers (sender registration, template approval, buying numbers), which their dashboards and
-SDKs cover.
+Out of scope: email, which is [@alexify/mailer](https://mailerat.vercel.app/); channels without
+an official API for this (Signal, whose bots run on the unofficial signal-cli, and iMessage,
+reached only through Apple's certified providers) and unofficial WhatsApp clients, which drive
+WhatsApp Web against its terms; and the management APIs of the providers (sender registration,
+template approval, buying numbers, app manifests), which their dashboards and SDKs cover.

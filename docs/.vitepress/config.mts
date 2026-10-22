@@ -5,11 +5,12 @@ import { defineConfig } from 'vitepress';
 // needs no hand-edit here.
 const { version } = createRequire(import.meta.url)('../../package.json') as { version: string };
 
-const ogTitle = '@alexify/messenger — SMS, WhatsApp, Telegram and Viber for Node.js';
+const ogTitle = '@alexify/messenger — chat apps, SMS and push for Node.js';
 const ogDescription =
-  'Zero-dependency messaging for Node.js, Bun and Deno: SMS, WhatsApp, Telegram and Viber ' +
-  'through their HTTP APIs, with a reliability layer on top — a persistent queue, an audit of ' +
-  'message states, one model of delivery receipts, idempotency and fallback between channels.';
+  'Zero-dependency messaging for Node.js, Bun and Deno: SMS, RCS, WhatsApp, Messenger, ' +
+  'Instagram, Telegram, Viber, Slack, Discord, Teams, Google Chat and push through their HTTP ' +
+  'APIs, with a reliability layer on top — a persistent queue, an audit of message states, one ' +
+  'model of delivery receipts, idempotency and fallback between channels.';
 const repo = 'https://github.com/Alexis-Technologies/messenger';
 const base = '/';
 const hostname = 'https://messengerat.vercel.app/';
@@ -21,6 +22,13 @@ const keywords = [
   'whatsapp cloud api',
   'telegram bot api',
   'viber',
+  'slack api',
+  'discord webhooks',
+  'microsoft teams',
+  'google chat',
+  'facebook messenger api',
+  'rcs business messaging',
+  'push notifications',
   'twilio alternative',
   'multichannel messaging',
   'sms fallback',

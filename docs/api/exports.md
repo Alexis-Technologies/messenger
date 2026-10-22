@@ -11,8 +11,8 @@ const { createMessenger } = require('@alexify/messenger');
 
 ## `createMessenger(options)`
 
-Creates a messenger that sends messages to SMS, WhatsApp, Telegram and Viber through their
-providers, with the reliability layer on top.
+Creates a messenger that sends messages to chat apps, SMS and push through their providers, with
+the reliability layer on top.
 
 ```ts
 interface Messenger {
