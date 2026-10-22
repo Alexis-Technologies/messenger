@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://messengerat.vercel.app/sitemap.xml
