@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only by default: nothing here writes to the repository.
+permissions:
+  contents: read
+
+# A new push to the same branch supersedes the run in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # oxlint/oxfmt native bindings need Node >= 20.19, so lint and format run
+  # once on Node 22 rather than across the engines matrix.
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+      # Fails over the min+gzip budget of an entry in scripts/size-budgets.json,
+      # which also catches a third-party module bundled in, and on an entry of
+      # the exports map without a budget.
+      - run: pnpm size --check
+      # The tarball holds every file of the exports map and nothing outside
+      # the files allowlist.
+      - run: pnpm run check:pack
+
+  types:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test:types
+      # Compiles index.d.ts on its own — the hand-written type surface has no
+      # other compiler pass over it.
+      - run: pnpm run check:dts
+
+  # The engines floor is Node 22, which expands the `tests/unit/*.test.js`
+  # glob itself, so Windows (where cmd.exe does not) runs every version.
+  test:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      # The package by its name on the runtime, with no mock; the same files
+      # run on Bun and Deno below.
+      - run: pnpm run test:runtime
+
+  # Bun and Deno run the unit and runtime suites through their own node:test.
+  # The versions are pinned, as the docs name the ones tested; engines stays
+  # Node >= 22, and Node installs the devDependencies the tests import.
+  runtimes:
+    name: test (${{ matrix.runtime }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [bun, deno]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - if: matrix.runtime == 'bun'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - if: matrix.runtime == 'deno'
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: 2.9.6
+      - run: pnpm run test:${{ matrix.runtime }}
+
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # `shell: bash` runs the step with `-o pipefail`, so the c8 thresholds
+      # fail the job through the pipe; the default shell takes tee's status.
+      - run: pnpm run test:coverage | tee coverage.txt
+        shell: bash
+      - name: Coverage summary
+        run: |
+          { echo '### Coverage'; echo '```'; grep '|' coverage.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info
+          retention-days: 14
+
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # The comparison table is generated from docs/comparison.json: a hand
+      # edit of the table, or data without a regenerated table, fails here.
+      - run: pnpm docs:comparison
+      - run: git diff --exit-code docs/guide/comparison.md
+      # A broken docs build (including dead links) should fail the PR, not the
+      # deploy that follows it.
+      - run: pnpm run docs:build
+
+  # Single aggregate check for branch protection: require only "ci-success"
+  # instead of naming every matrix leg (which silently un-requires new legs).
+  ci-success:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [lint, types, test, runtimes, coverage, docs]
+    if: always()
+    steps:
+      - name: Fail when any needed job failed, was cancelled or was skipped
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        run: exit 1
+      - run: echo "All CI jobs passed"
