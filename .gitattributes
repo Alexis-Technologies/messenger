@@ -1,0 +1,4 @@
+# LF everywhere, also on Windows checkouts: the signatures of provider webhooks
+# are computed over the exact bytes of a request body, and the fixtures that
+# replay them are compared byte for byte.
+* text=auto eol=lf

@@ -1,0 +1,42 @@
+{
+  "node": "v24.14.1",
+  "date": "2026-10-22T16:48:20.838Z",
+  "results": [
+    {
+      "name": "SMS segments — GSM-7 text, 2 segments",
+      "opsPerSec": 312972
+    },
+    {
+      "name": "SMS segments — UCS-2 text, 4 segments",
+      "opsPerSec": 22981088
+    },
+    {
+      "name": "E.164 — 4 numbers as typed, default +380",
+      "opsPerSec": 1792125
+    },
+    {
+      "name": "Webhook — WhatsApp, HMAC-SHA256 of the body",
+      "opsPerSec": 510520
+    },
+    {
+      "name": "Webhook — Twilio, HMAC-SHA1 of URL and params",
+      "opsPerSec": 443518
+    },
+    {
+      "name": "Webhook — JSON.parse of a WhatsApp status",
+      "opsPerSec": 684936
+    },
+    {
+      "name": "Audit log — SHA-256 of an outbox record",
+      "opsPerSec": 1282621
+    },
+    {
+      "name": "Outbox — JSON.stringify of a record",
+      "opsPerSec": 1269696
+    },
+    {
+      "name": "Outbox — JSON.parse of a record",
+      "opsPerSec": 837290
+    }
+  ]
+}

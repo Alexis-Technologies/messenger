@@ -1,0 +1,24 @@
+# @alexify/messenger
+
+> Zero-dependency messaging for Node.js, Bun and Deno, maintained by Alexis Technologies. SMS and
+> RCS, WhatsApp, Messenger and Instagram, Telegram and Viber, Slack, Discord, Microsoft Teams and
+> Google Chat, and push (FCM, APNs, Web Push) through the HTTP APIs of their providers (including
+> the Ukrainian SMS and Viber providers), with a reliability layer on top that the common Node.js
+> messaging libraries leave to the application: a persistent queue and outbox, an audit of the
+> states of a message, one model of delivery receipts from verified webhooks, opt-out,
+> idempotency and fallback between providers and channels.
+
+Key facts:
+- Status: work in progress. The API is being designed; `createMessenger` is exported as a
+  placeholder that throws
+- Package (npm): `@alexify/messenger`, installed with `npm install @alexify/messenger`
+- Node.js >= 22, Bun and Deno; CommonJS with ESM named-import interop; hand-written `index.d.ts`
+- Zero runtime dependencies: the providers are called with `fetch` and `node:*` modules, and the
+  drivers of a queue or a database are passed in by the application
+- Channels planned for the first version: SMS, RCS, WhatsApp, Facebook Messenger, Instagram,
+  Telegram, Viber, Slack, Discord, Microsoft Teams, Google Chat and push (FCM, APNs, Web Push).
+  Email is out of scope: it is the sibling library `@alexify/mailer`
+- Exports: `createMessenger(options)`
+- Comparison with 11 alternatives (@visulima/notification, @thinwrap/notifications, Novu,
+  notifme-sdk, the SDKs of Twilio, Telnyx, Vonage, Plivo and Sinch, grammY,
+  node-telegram-bot-api): https://messengerat.vercel.app/guide/comparison
